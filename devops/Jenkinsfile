@@ -7,7 +7,6 @@ pipeline {
         DOCKER_HUB_CREDENTIALS = 'dockerhub-credentials'
         SSH_CREDENTIALS = 'ssh-credentials'
         DROPLET_IP = '207.154.204.90'
-
         BACKEND_IMAGE = 'adhamgamal22/add-user-backend:1.0'
         FRONTEND_IMAGE = 'adhamgamal22/add-user-frontend:1.0'
     }
@@ -27,7 +26,7 @@ pipeline {
                         echo 'Installing dependencies & building backend...'
                         dir('backend') {
                             sh 'npm install'
-                            sh 'npm run build'
+                            echo 'Backend setup completed. No build step required.'
                         }
                     } catch (Exception e) {
                         error "Backend build failed: ${e.message}"
