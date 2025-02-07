@@ -6,8 +6,8 @@ const app = express();
 app.use(cors());
 app.use(express.json()); // Middleware to parse JSON data
 
-// Environment Variables
-const mongoURI = 'mongodb://164.92.166.224:27017/mydb';
+// Environment Variable for MongoDB URI (make sure it's set in your environment or .env file)
+const mongoURI = process.env.MONGO_URI || 'mongodb://localhost:27017/mydb'; // Fallback to local DB if MONGO_URI is not set
 
 // MongoDB Connection
 mongoose
