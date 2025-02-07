@@ -55,7 +55,7 @@ pipeline {
             steps {
                 script {
                     echo 'Building backend Docker image...'
-                    sh "docker build -t ${BACKEND_IMAGE} -f devops/backend.Dockerfile ./backend"
+                    sh "docker build -t ${BACKEND_IMAGE} -f devops/Dockerfile.backend ./backend"
                 }
             }
         }
@@ -64,7 +64,7 @@ pipeline {
             steps {
                 script {
                     echo 'Building frontend Docker image...'
-                    sh "docker build -t ${FRONTEND_IMAGE} -f devops/frontend.Dockerfile ./frontend"
+                    sh "docker build -t ${FRONTEND_IMAGE} -f devops/Dockerfile.frontend ./frontend"
                 }
             }
         }
