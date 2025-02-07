@@ -1,0 +1,128 @@
+pipeline {
+    agent any
+
+    environment {
+        GIT_REPO = 'https://github.com/HebaAli48/fashionECommerce.git'
+        BRANCH = 'main'
+        DOCKER_HUB_CREDENTIALS = 'dockerhub-credentials'
+        SSH_CREDENTIALS = 'ssh-credentials'
+        DROPLET_IP = '206.81.28.37'
+
+        BACKEND_IMAGE = 'adhamgamal22/add-user-backend:1.0'
+        FRONTEND_IMAGE = 'adhamgamal22/add-user-frontend:1.0'
+    }
+
+    stages {
+        stage('Step 1: Checkout Code from GitHub') { 
+            steps {
+                echo 'Checking out code from GitHub...'
+                git branch: "${BRANCH}", url: "${GIT_REPO}"
+            }
+        }
+
+        stage('Step 2: Install Dependencies & Build Backend') { 
+            steps {
+                script {
+                    try {
+                        echo 'Installing dependencies & building backend...'
+                        dir('backend') {
+                            sh 'npm install'
+                            sh 'npm run build'
+                        }
+                    } catch (Exception e) {
+                        error "Backend build failed: ${e.message}"
+                    }
+                }
+            }
+        }
+
+        stage('Step 3: Install Dependencies & Build Frontend') { 
+            steps {
+                script {
+                    try {
+                        echo 'Installing dependencies & building frontend...'
+                        dir('frontend') {
+                            sh 'npm install'
+                            sh 'npm run build'
+                        }
+                    } catch (Exception e) {
+                        error "Frontend build failed: ${e.message}"
+                    }
+                }
+            }
+        }
+
+        stage('Step 4: Build Backend Docker Image') { 
+            steps {
+                script {
+                    echo 'Building backend Docker image...'
+                    sh "docker build -t ${BACKEND_IMAGE} -f devops/backend.Dockerfile ./backend"
+                }
+            }
+        }
+
+        stage('Step 5: Build Frontend Docker Image') { 
+            steps {
+                script {
+                    echo 'Building frontend Docker image...'
+                    sh "docker build -t ${FRONTEND_IMAGE} -f devops/frontend.Dockerfile ./frontend"
+                }
+            }
+        }
+
+        stage('Step 6: Push Backend Image to Docker Hub') { 
+            steps {
+                script {
+                    echo 'Pushing backend Docker image to Docker Hub...'
+                    withCredentials([usernamePassword(credentialsId: "${DOCKER_HUB_CREDENTIALS}", usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                        sh """
+                        echo ${DOCKER_PASSWORD} | docker login -u ${DOCKER_USERNAME} --password-stdin
+                        docker push ${BACKEND_IMAGE}
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Step 7: Push Frontend Image to Docker Hub') { 
+            steps {
+                script {
+                    echo 'Pushing frontend Docker image to Docker Hub...'
+                    withCredentials([usernamePassword(credentialsId: "${DOCKER_HUB_CREDENTIALS}", usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                        sh """
+                        echo ${DOCKER_PASSWORD} | docker login -u ${DOCKER_USERNAME} --password-stdin
+                        docker push ${FRONTEND_IMAGE}
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Step 8: Deploy Application on DigitalOcean') { 
+            steps {
+                script {
+                    sshagent([SSH_CREDENTIALS]) {
+                        sh """
+                        echo 'Copying docker-compose.yml to droplet...'
+                        scp -o StrictHostKeyChecking=no devops/docker-compose.yml root@${DROPLET_IP}:/root/docker-compose.yml
+
+                        echo 'Deploying with Docker Compose...'
+                        ssh -o StrictHostKeyChecking=no root@${DROPLET_IP} '
+                            if ! command -v docker &> /dev/null; then
+                                echo "Installing Docker..."
+                                apt-get update && apt-get install -y docker.io
+                            fi
+
+                            echo "Stopping and removing existing containers..."
+                            docker-compose -f /root/devops/docker-compose.yml down
+
+                            echo "Starting new containers..."
+                            docker-compose -f /root/devops/docker-compose.yml up -d
+                        '
+                        """
+                    }
+                }
+            }
+        }
+    }
+}
