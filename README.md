@@ -1,214 +1,64 @@
-# User Management App
+# User Management App - DevOps Implementation
 
-## Overview
-This is a full-stack CRUD application for managing users. It allows users to perform the following operations:
+## Project Overview
+This project is a full-stack user management application that allows users to create, read, update, and delete (CRUD) user data. The backend is built with Node.js, Express, and MongoDB, while the frontend is developed with React. The application is designed to be easily deployable and scalable.
 
-- **Create**: Add new users.
-- **Read**: View a list of all users.
-- **Update**: Edit details of existing users.
-- **Delete**: Remove users.
+## Deployment Strategy
+To deploy this project efficiently, we applied DevOps best practices to ensure reliability, scalability, and automation. The main goal was to containerize the application, automate its deployment, and integrate CI/CD to streamline updates.
 
-The backend is built with Node.js, Express, and MongoDB. The frontend is implemented to interact seamlessly with the backend API endpoints.
+### Containerization
+We split the application into three independent containers:
+1. **Backend (Node.js + Express + MongoDB Driver)**: A separate container running the backend API to manage user data.
+2. **Frontend (React + Static Files)**: A dedicated frontend container serving the user interface.
+3. **Database (MongoDB)**: A persistent storage container holding the user data.
 
-## Features
-- API for managing user data with operations such as GET, POST, PUT, and DELETE.
-- MongoDB database to store user information.
-- Dockerized deployment for backend and database.
-- Jenkins pipeline for CI/CD.
+To optimize container size, we used Debian-based minimal images, reducing overhead while maintaining compatibility with required dependencies.
 
----
+### Docker Compose
+To manage multi-container orchestration, we used Docker Compose. This allowed us to:
+- Define and manage all services in a single `docker-compose.yml` file.
+- Ensure proper dependency resolution (backend waits for MongoDB to be available before starting).
+- Simplify deployment by running a single command to bring up the entire stack.
 
-## Project Structure
-### Backend
-- **`server.js`**: Main entry point for the backend server.
-- **MongoDB**: Used as the database to store user information.
-- **Express**: Used to build the RESTful API endpoints.
-- **CORS**: Enabled to allow cross-origin requests.
+### CI/CD with Jenkins
+To automate the build, test, and deployment process, we set up a Jenkins pipeline. The pipeline ensures that every change to the application is automatically built, tested, pushed to Docker Hub, and deployed to a DigitalOcean droplet.
 
-### Frontend
-- React-based frontend for interacting with the backend API. It provides the user interface for CRUD operations.
+#### **Pipeline Steps**
+1. **Checkout Code from GitHub**
+   - Retrieves the latest code from the repository.
 
----
+2. **Install Dependencies & Build Backend**
+   - Installs necessary backend dependencies using `npm install`.
+   - Ensures the backend is ready for deployment.
 
-## Backend API Endpoints
-### Base URL: `http://localhost:5000`
+3. **Install Dependencies & Build Frontend**
+   - Installs frontend dependencies and builds the project.
+   - Ensures static assets are compiled and optimized.
 
-1. **Get all users**
-   - `GET /users`
-   - Response: List of all users in the database.
+4. **Build Backend Docker Image**
+   - Creates a Docker image for the backend service based on a custom `Dockerfile.backend`.
 
-2. **Add a new user**
-   - `POST /users`
-   - Request body (JSON):
-     ```json
-     {
-       "name": "John Doe",
-       "email": "john.doe@example.com",
-       "jobTitle": "Developer",
-       "age": 30
-     }
-     ```
+5. **Build Frontend Docker Image**
+   - Builds a separate Docker image for the frontend service using `Dockerfile.frontend`.
 
-3. **Update an existing user**
-   - `PUT /users/:id`
-   - Request body (JSON):
-     ```json
-     {
-       "name": "Jane Doe",
-       "email": "jane.doe@example.com",
-       "jobTitle": "Designer",
-       "age": 28
-     }
-     ```
+6. **Push Backend Image to Docker Hub**
+   - Logs into Docker Hub and pushes the backend image to a remote repository.
 
-4. **Delete a user**
-   - `DELETE /users/:id`
-   - Response: Confirmation message upon successful deletion.
+7. **Push Frontend Image to Docker Hub**
+   - Similarly, pushes the frontend image to Docker Hub for deployment.
 
----
+8. **Deploy Application on DigitalOcean**
+   - Uses SSH to copy the `docker-compose.yml` file to the DigitalOcean droplet.
+   - Ensures Docker and Docker-Compose are installed on the remote server.
+   - Stops any running containers and deploys the updated application using Docker Compose.
 
-## Docker Compose Configuration
-The project uses Docker Compose to orchestrate the services.
-
-### `docker-compose.yml`
-```yaml
-version: '3.8'
-services:
-  mongo:
-    image: mongo:latest
-    container_name: mongo
-    ports:
-      - '27017:27017'
-    volumes:
-      - mongo-data:/data/db
-
-  backend:
-    build: .
-    container_name: backend
-    ports:
-      - '5000:5000'
-    depends_on:
-      - mongo
-    environment:
-      - PORT=5000
-      - MONGO_URI=mongodb://mongo:27017/mydb
-
-volumes:
-  mongo-data:
-```
-
-### Explanation
-1. **`mongo` service**:
-   - Runs the MongoDB database container.
-   - Exposes port `27017` for the database.
-   - Persists data in a volume named `mongo-data`.
-
-2. **`backend` service**:
-   - Runs the Node.js application.
-   - Exposes port `5000`.
-   - Connects to the MongoDB service using `MONGO_URI`.
-
----
-
-## Jenkins CI/CD Pipeline
-### Jenkinsfile
-```groovy
-pipeline {
-    agent any
-    stages {
-        stage('Build') {
-            steps {
-                echo 'Building the application...'
-                sh 'docker-compose build'
-            }
-        }
-        stage('Test') {
-            steps {
-                echo 'Running tests...'
-                sh 'npm test' // Replace with your test commands
-            }
-        }
-        stage('Deploy') {
-            steps {
-                echo 'Deploying the application...'
-                sh 'docker-compose up -d'
-            }
-        }
-    }
-    post {
-        always {
-            echo 'Cleaning up...'
-            sh 'docker-compose down'
-        }
-    }
-}
-```
-
-### Explanation
-1. **Build Stage**:
-   - Builds the Docker images for the backend and MongoDB services.
-
-2. **Test Stage**:
-   - Runs tests for the application (modify test command based on your setup).
-
-3. **Deploy Stage**:
-   - Deploys the application by bringing up the Docker containers.
-
-4. **Post-Cleanup**:
-   - Ensures Docker containers are stopped and removed after the pipeline.
-
----
-
-## How to Run the App
-
-### Prerequisites
-- Node.js and npm
-- Docker and Docker Compose
-- MongoDB (if running without Docker)
-- Jenkins (optional for CI/CD)
-
-### Steps
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/your-repo.git
-   cd your-repo
-   ```
-
-2. Start the application using Docker Compose:
-   ```bash
-   docker-compose up -d
-   ```
-
-3. Access the backend API at `http://localhost:5000`.
-
-4. Run the frontend (if applicable) to interact with the API.
-
-5. Access Jenkins and configure the pipeline using the provided `Jenkinsfile`.
-
----
-
-## Frontend Integration
-- The frontend is designed to send HTTP requests to the backend API using `fetch` or `Axios`.
-- CRUD operations are mapped to the respective endpoints (`/users` for GET, POST, PUT, DELETE).
-
----
-
-## Technologies Used
-- **Backend**: Node.js, Express, MongoDB, Mongoose
-- **Frontend**: React (or other frontend frameworks as needed)
-- **Containerization**: Docker, Docker Compose
-- **CI/CD**: Jenkins
-
----
+## Justifications for the DevOps Choices
+- **Containerization (Docker)**: Allows for consistency between development and production environments.
+- **Docker-Compose**: Simplifies multi-container application management.
+- **Jenkins CI/CD**: Automates the deployment process, reducing manual work and potential errors.
 
 ## Future Improvements
-- Add authentication and authorization.
-- Implement better error handling and logging.
-- Add frontend testing and backend unit tests.
-- Deploy to a cloud provider like AWS, Azure, or DigitalOcean.
-
----
-
-## License
-This project is licensed under the MIT License.
-
+- Implement Kubernetes for better container orchestration at scale.
+- Enhance monitoring and logging using Prometheus and Grafana.
+- Automate rollbacks in case of deployment failures.
+- Integrate automated tests into the CI/CD pipeline.
