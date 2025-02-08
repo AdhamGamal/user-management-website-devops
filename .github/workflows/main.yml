@@ -9,102 +9,85 @@ env:  # ✅ Global environment variables
   DROPLET_IP: '207.154.204.90'
 
 jobs:
-  build_backend:
-    runs-on: ubuntu-latest
-    env:
-      BACKEND_IMAGE: 'adhamgamal22/add-user-backend:1.0'
-    steps:
-      - name: Step 1 - Checkout Code
-        uses: actions/checkout@v4
+#   build_backend:
+#     runs-on: ubuntu-latest
+#     env:
+#       BACKEND_IMAGE: 'adhamgamal22/add-user-backend:1.0'
+#     steps:
+#       - name: Step 1 - Checkout Code
+#         uses: actions/checkout@v4
 
-      - name: Step 2 - Install Dependencies & Build Backend
-        run: |
-          cd backend
-          npm install
-          echo "✅ Backend setup completed."
+#       - name: Step 2 - Install Dependencies & Build Backend
+#         run: |
+#           cd backend
+#           npm install
+#           echo "✅ Backend setup completed."
 
-      - name: Step 3 - Build Backend Docker Image
-        run: |
-          docker build -t $BACKEND_IMAGE -f devops/Dockerfile.backend .
-          echo "✅ Backend Docker image built."
+#       - name: Step 3 - Build Backend Docker Image
+#         run: |
+#           docker build -t $BACKEND_IMAGE -f devops/Dockerfile.backend .
+#           echo "✅ Backend Docker image built."
 
-      - name: Step 4 - Push Backend Image to Docker Hub
-        env:
-          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-        run: |
-          echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
-          docker push $BACKEND_IMAGE
-          echo "✅ Backend image pushed to Docker Hub."
+#       - name: Step 4 - Push Backend Image to Docker Hub
+#         env:
+#           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+#           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+#         run: |
+#           echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+#           docker push $BACKEND_IMAGE
+#           echo "✅ Backend image pushed to Docker Hub."
 
-  build_frontend:
-    runs-on: ubuntu-latest
-    env:
-      FRONTEND_IMAGE: 'adhamgamal22/add-user-frontend:1.0'
-    steps:
-      - name: Step 1 - Checkout Code
-        uses: actions/checkout@v4
+#   build_frontend:
+#     runs-on: ubuntu-latest
+#     env:
+#       FRONTEND_IMAGE: 'adhamgamal22/add-user-frontend:1.0'
+#     steps:
+#       - name: Step 1 - Checkout Code
+#         uses: actions/checkout@v4
 
-      - name: Step 2 - Install Dependencies & Build Frontend
-        run: |
-          cd frontend
-          npm install
-          npm run build
-          echo "✅ Frontend build completed."
+#       - name: Step 2 - Install Dependencies & Build Frontend
+#         run: |
+#           cd frontend
+#           npm install
+#           npm run build
+#           echo "✅ Frontend build completed."
 
-      - name: Step 3 - Build Frontend Docker Image
-        run: |
-          docker build -t $FRONTEND_IMAGE -f devops/Dockerfile.frontend .
-          echo "✅ Frontend Docker image built."
+#       - name: Step 3 - Build Frontend Docker Image
+#         run: |
+#           docker build -t $FRONTEND_IMAGE -f devops/Dockerfile.frontend .
+#           echo "✅ Frontend Docker image built."
 
-      - name: Step 4 - Push Frontend Image to Docker Hub
-        env:
-          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-        run: |
-          echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
-          docker push $FRONTEND_IMAGE
-          echo "✅ Frontend image pushed to Docker Hub."
+#       - name: Step 4 - Push Frontend Image to Docker Hub
+#         env:
+#           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+#           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+#         run: |
+#           echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+#           docker push $FRONTEND_IMAGE
+#           echo "✅ Frontend image pushed to Docker Hub."
         
   deploy:
-    needs: [build_backend, build_frontend]
+    # needs: [build_backend, build_frontend]
     runs-on: ubuntu-latest
+  
     steps:
-      - name: Step 1 - Checkout Code
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Step 2 - Set up SSH key
+      - name: Set up SSH
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/key.pem  # Use key.pem instead of id_rsa
-          chmod 600 ~/.ssh/key.pem  # Ensure the private key has correct permissions
-          eval $(ssh-agent -s)  # Start the SSH agent
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          eval "$(ssh-agent -s)"
+          echo "${{ secrets.SSH_PRIVATE_KEY_PASS }}" | ssh-add ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.DROPLET_IP }} >> ~/.ssh/known_hosts
 
-          # Create a temporary askpass script
-          echo '#!/bin/bash' > /tmp/askpass.sh
-          echo 'echo "${{ secrets.SSH_PRIVATE_KEY_PASS }}"' >> /tmp/askpass.sh
-          chmod +x /tmp/askpass.sh
-
-          # Use SSH_ASKPASS to provide the passphrase non-interactively
-          export SSH_ASKPASS=/tmp/askpass.sh
-          export DISPLAY=:0  # Required for SSH_ASKPASS to work
-          echo "${{ secrets.SSH_PRIVATE_KEY_PASS }}" | ssh-add ~/.ssh/key.pem  # Use key.pem here
-
-          # Generate the public key (optional, if needed)
-          ssh-keygen -y -f ~/.ssh/key.pem > ~/.ssh/key.pem.pub
-          chmod 600 ~/.ssh/key.pem.pub  # Set appropriate permissions for the public key
-          ssh-keyscan $DROPLET_IP >> ~/.ssh/known_hosts
-          echo "✅ Setup SSH key."
-
-      - name: Step 3 - Install Ansible
+      - name: Install Ansible
         run: |
-          sudo apt update
-          sudo apt install -y ansible
-          echo "✅ Ansible installed."
-        
-      - name: Step 4 - Deploy to DigitalOcean with Ansible
+          sudo apt-get update
+          sudo apt-get install -y ansible
+
+      - name: Run Ansible playbook
         run: |
-          echo "🚀 Running Ansible playbook..."
-          # Use the SSH agent for non-interactive SSH connections in Ansible
           ansible-playbook -i devops/inventory.ini devops/deploy.yml
-          echo "✅ Deployment completed."
