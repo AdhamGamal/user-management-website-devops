@@ -92,5 +92,5 @@ jobs:
       - name: Step 4 - Deploy to DigitalOcean with Ansible
         run: |
           echo "🚀 Running Ansible playbook..."
-          ansible-playbook -i devops/inventory.ini devops/deploy.yml --private-key ~/.ssh/id_rsa -v
+          ansible-playbook -i devops/inventory.ini devops/deploy.yml --private-key ~/.ssh/id_rsa -vvvv -e "ansible_ssh_extra_args='-o ControlMaster=no'"
           echo "✅ Deployment completed."
