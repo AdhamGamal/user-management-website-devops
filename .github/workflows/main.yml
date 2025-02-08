@@ -77,7 +77,7 @@ jobs:
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 644 ~/.ssh/id_rsa  # Ensure the private key has correct permissions
+          chmod 600 ~/.ssh/id_rsa  # Ensure the private key has correct permissions
           eval $(ssh-agent -s)  # Start the SSH agent
 
           # Create a temporary askpass script
