@@ -12,7 +12,7 @@ services:
     networks:
       - appnet
     healthcheck:
-      test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"]
+      test: ["CMD", "nc", "-z", "localhost", "27017"]
       interval: 10s
       timeout: 5s
       retries: 5
