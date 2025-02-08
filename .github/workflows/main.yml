@@ -96,12 +96,10 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Step 2 - Deploy to DigitalOcean with Ansible
+        env:
+          ANSIBLE_VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}  # Pass directly
         run: |
-          if [ ! -f ~/.ansible_vault_password ]; then
-            echo "❌ Vault password file missing! Aborting."
-            exit 1
-          fi
           echo "🚀 Running Ansible playbook..."
-          ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i devops/inventory.ini devops/deploy.yml --private-key ~/.ssh/id_rsa --vault-password-file ~/.ansible_vault_password
+          ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i devops/inventory.ini devops/deploy.yml --private-key ~/.ssh/id_rsa --vault-password-file <(echo "$ANSIBLE_VAULT_PASSWORD")
           echo "✅ Deployment completed."
-      
+            
