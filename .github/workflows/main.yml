@@ -78,11 +78,11 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa  # Ensure the private key has correct permissions
+          echo "${{ secrets.SSH_PRIVATE_KEY_PASS }}" | ssh-add ~/.ssh/id_rsa
           # Generate the public key from the private key
           ssh-keygen -y -f ~/.ssh/id_rsa > ~/.ssh/id_rsa.pub
           chmod 644 ~/.ssh/id_rsa.pub  # Set appropriate permissions for the public key
           eval $(ssh-agent -s)  # Start the SSH agent
-          echo "${{ secrets.SSH_PRIVATE_KEY_PASS }}" | ssh-add ~/.ssh/id_rsa
           ssh-keyscan $DROPLET_IP >> ~/.ssh/known_hosts
           ls -la ~/.ssh
           echo "✅ Setup SSH key."
