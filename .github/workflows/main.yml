@@ -78,14 +78,10 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
+          eval $(ssh-agent -s)  # Start the SSH agent
+          echo "${{ secrets.SSH_PRIVATE_KEY_PASS }}" | ssh-add ~/.ssh/id_rsa
           ssh-keyscan $DROPLET_IP >> ~/.ssh/known_hosts
-          echo ${{ secrets.ANSIBLE_VAULT_PASSWORD }} > ~/.ansible_vault_password
-          chmod 600 ~/.ansible_vault_password
-          echo "✅ Setup SSH key and vault password file."
-
-      - name: Debug SSH Connection
-        run: |
-          ssh -v -i ~/.ssh/id_rsa root@$DROPLET_IP "echo 'SSH connection successful'"
+          echo "✅ Setup SSH key."
   
       - name: Step 2 - Install Ansible
         run: |
@@ -96,6 +92,6 @@ jobs:
       - name: Step 4 - Deploy to DigitalOcean with Ansible
         run: |
           echo "🚀 Running Ansible playbook..."
-          ansible-playbook -i devops/inventory.ini devops/deploy.yml --private-key ~/.ssh/id_rsa --vault-password-file ~/.ansible_vault_password
+          ansible-playbook -i devops/inventory.ini devops/deploy.yml --private-key ~/.ssh/id_rsa
           echo "✅ Deployment completed."
             
