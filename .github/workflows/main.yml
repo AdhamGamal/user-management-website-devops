@@ -1,0 +1,79 @@
+name: Deploy to DigitalOcean
+
+on:
+  push:
+    branches:
+      - main  # Trigger on push to the main branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest  # Use the latest Ubuntu runner
+    
+    env:
+      BACKEND_IMAGE: 'adhamgamal22/add-user-backend:1.0'
+      FRONTEND_IMAGE: 'adhamgamal22/add-user-frontend:1.0'
+      DROPLET_IP: '207.154.204.90'
+
+    steps:
+      - name: Step 1 - Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Step 2 - Install Dependencies & Build Backend
+        run: |
+          cd backend
+          npm install
+          echo "✅ Backend setup completed."
+
+      - name: Step 3 - Install Dependencies & Build Frontend
+        run: |
+          cd frontend
+          npm install
+          npm run build
+          echo "✅ Frontend build completed."
+
+      - name: Step 4 - Build Backend Docker Image
+        run: |
+          docker build -t $BACKEND_IMAGE -f devops/Dockerfile.backend .
+          echo "✅ Backend Docker image built."
+
+      - name: Step 5 - Build Frontend Docker Image
+        run: |
+          docker build -t $FRONTEND_IMAGE -f devops/Dockerfile.frontend .
+          echo "✅ Frontend Docker image built."
+
+      - name: Step 6 - Push Backend Image to Docker Hub
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        run: |
+          echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+          docker push $BACKEND_IMAGE
+          echo "✅ Backend image pushed to Docker Hub."
+
+      - name: Step 7 - Push Frontend Image to Docker Hub
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        run: |
+          echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+          docker push $FRONTEND_IMAGE
+          echo "✅ Frontend image pushed to Docker Hub."
+
+      - name: Step 8 - Install Ansible
+        run: |
+          sudo apt update
+          sudo apt install -y ansible
+          echo "✅ Ansible installed."
+
+      - name: Step 9 - Deploy to DigitalOcean with Ansible
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan $DROPLET_IP >> ~/.ssh/known_hosts
+
+          echo "🚀 Running Ansible playbook..."
+          ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i devops/inventory.ini devops/deploy.yml --private-key ~/.ssh/id_rsa
+          echo "✅ Deployment completed."
