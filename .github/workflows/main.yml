@@ -79,8 +79,10 @@ jobs:
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa  # Ensure the private key has correct permissions
           eval $(ssh-agent -s)  # Start the SSH agent
-          echo "Using passphrase: '${{ secrets.SSH_PRIVATE_KEY_PASS }}'"
-          echo "${{ secrets.SSH_PRIVATE_KEY_PASS }}" | ssh-add ~/.ssh/id_rsa -p
+          # Use a temporary file to pass the passphrase to ssh-add
+          echo "${{ secrets.SSH_PRIVATE_KEY_PASS }}" > /tmp/ssh_passphrase
+          SSH_ASKPASS=/tmp/ssh_passphrase DISPLAY= ssh-add ~/.ssh/id_rsa < /tmp/ssh_passphrase
+          rm -f /tmp/ssh_passphrase  # Clean up the temporary file
           ssh-keygen -y -f ~/.ssh/id_rsa > ~/.ssh/id_rsa.pub
           chmod 644 ~/.ssh/id_rsa.pub  # Set appropriate permissions for the public key
           ssh-keyscan $DROPLET_IP >> ~/.ssh/known_hosts
@@ -97,5 +99,5 @@ jobs:
         run: |
           echo "🚀 Running Ansible playbook..."
           # Use the SSH agent for non-interactive SSH connections in Ansible
-          ansible-playbook -i devops/inventory.ini devops/deploy.yml --private-key ~/.ssh/id_rsa -vvvv -e "ansible_ssh_extra_args='-o ControlMaster=no -o ForwardAgent=yes'"
+          ansible-playbook -i devops/inventory.ini devops/deploy.yml --private-key ~/.ssh/id_rsa -vvvv
           echo "✅ Deployment completed."
