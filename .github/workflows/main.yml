@@ -5,8 +5,8 @@ on:
     branches:
       - main  # Trigger on push to the main branch
 
-env:
-  DROPLET_IP: '207.154.204.90'  # Global DigitalOcean server IP
+env:  # ✅ Global environment variables
+  DROPLET_IP: '207.154.204.90'
 
 jobs:
   build_backend:
@@ -75,6 +75,18 @@ jobs:
           sudo apt install -y ansible
           echo "✅ Ansible installed."
 
+      - name: Step 2 - Set up SSH key
+        env:
+          ANSIBLE_VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/key.pem
+          chmod 400 ~/.ssh/key.pem
+          ssh-keyscan -H $DROPLET_IP >> ~/.ssh/known_hosts
+          echo "$ANSIBLE_VAULT_PASSWORD" > ~/.ansible_vault_password
+          ls -lah ~  # List files to confirm existence
+          echo "✅ Setup SSH key and vault password file."
+        
   deploy:
     needs: [build_backend, build_frontend, setup_deploy]
     runs-on: ubuntu-latest
@@ -82,14 +94,11 @@ jobs:
       - name: Step 1 - Checkout Code
         uses: actions/checkout@v4
 
-      - name: Step 2 - Deploy to DigitalOcean via SSH
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ env.DROPLET_IP }}
-          username: root
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            echo "🚀 Running Ansible playbook..."
-            cd /path/to/your/project  # Replace with actual deployment directory
-            ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i devops/inventory.ini devops/deploy.yml --vault-password-file <(echo "${{ secrets.ANSIBLE_VAULT_PASSWORD }}")
-            echo "✅ Deployment completed."
+      - name: Step 2 - Deploy to DigitalOcean with Ansible
+        env:
+          ANSIBLE_VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}  # Pass directly
+        run: |
+          echo "🚀 Running Ansible playbook..."
+          ansible-playbook -i devops/inventory.ini devops/deploy.yml --vault-password-file <(echo "$ANSIBLE_VAULT_PASSWORD")
+          echo "✅ Deployment completed."
+            
