@@ -82,10 +82,12 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan $DROPLET_IP >> ~/.ssh/known_hosts  # ✅ Uses global env variable
+          ssh-keyscan $DROPLET_IP >> ~/.ssh/known_hosts
           echo "$ANSIBLE_VAULT_PASSWORD" > ~/.ansible_vault_password
-          echo "✅ Setup SSH key."
-
+          chmod 600 ~/.ansible_vault_password  # Ensure correct permissions
+          ls -lah ~  # List files to confirm existence
+          echo "✅ Setup SSH key and vault password file."
+        
   deploy:
     needs: [build_backend, build_frontend, setup_deploy]
     runs-on: ubuntu-latest
@@ -95,6 +97,11 @@ jobs:
 
       - name: Step 2 - Deploy to DigitalOcean with Ansible
         run: |
+          if [ ! -f ~/.ansible_vault_password ]; then
+            echo "❌ Vault password file missing! Aborting."
+            exit 1
+          fi
           echo "🚀 Running Ansible playbook..."
           ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i devops/inventory.ini devops/deploy.yml --private-key ~/.ssh/id_rsa --vault-password-file ~/.ansible_vault_password
           echo "✅ Deployment completed."
+      

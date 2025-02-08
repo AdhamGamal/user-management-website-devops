@@ -9,6 +9,7 @@ services:
       - "27017:27017"
     volumes:
       - mongo_data:/data/db
+      - mongodb_config:/data/configdb
     networks:
       - appnet
     # healthcheck:
@@ -48,6 +49,10 @@ volumes:
   mongo_data:
     name: mongo_data
     driver: local
+  mongodb_config:
+    name: mongodb_config
+    driver: local
+
 
 networks:
   appnet:
