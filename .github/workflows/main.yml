@@ -63,32 +63,29 @@ jobs:
           docker push $FRONTEND_IMAGE
           echo "✅ Frontend image pushed to Docker Hub."
 
-  deploy:
-    needs: [build_backend, build_frontend]  # Ensure this job runs after the others
+  setup_deploy:
     runs-on: ubuntu-latest  # Use the latest Ubuntu runner
-    env:
-      DROPLET_IP: '207.154.204.90'
-
     steps:
-      - name: Step 1 - Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Step 2 - Install Ansible
+      - name: Step 1 - Install Ansible
         run: |
           sudo apt update
           sudo apt install -y ansible
           echo "✅ Ansible installed."
 
-      - name: Step 3 - Set up SSH key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H $DROPLET_IP >> ~/.ssh/known_hosts
-          echo "✅ Setup SSH key."
+  deploy:
+    needs: [build_backend, build_frontend, setup_deploy]  # Ensure this job runs after the others
+    runs-on: ubuntu-latest  # Use the latest Ubuntu runner
+    env:
+      DROPLET_IP: '207.154.204.90'
 
-      - name: Step 4 - Deploy to DigitalOcean with Ansible
-        run: |
-          echo "🚀 Running Ansible playbook..."
-          ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i devops/inventory.ini devops/deploy.yml --private-key ~/.ssh/id_rsa
-          echo "✅ Deployment completed."
+    steps:
+      - name: Deploy to DigitalOcean Droplet
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.DROPLET_IP }}
+          username: root
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo 'Running Ansible playbook...'
+            ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i devops/inventory.ini devops/deploy.yml
+  
