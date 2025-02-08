@@ -101,13 +101,8 @@ jobs:
           sudo apt update
           sudo apt install -y ansible
           echo "✅ Ansible installed."
-      
-      - name: Step 4 - Debug SSH Connection
-        run: |
-          echo "Testing SSH connection..."
-          ssh -vvvv -i ~/.ssh/id_rsa root@$DROPLET_IP
         
-      - name: Step 5 - Deploy to DigitalOcean with Ansible
+      - name: Step 4 - Deploy to DigitalOcean with Ansible
         run: |
           echo "🚀 Running Ansible playbook..."
           # Use the SSH agent for non-interactive SSH connections in Ansible
