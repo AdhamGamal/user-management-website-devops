@@ -5,15 +5,18 @@ on:
     branches:
       - main  # Trigger on push to the main branch
 
+env:  # ✅ Global environment variables
+  DROPLET_IP: '207.154.204.90'
+
 jobs:
   build_backend:
-    runs-on: ubuntu-latest  # Use the latest Ubuntu runner
+    runs-on: ubuntu-latest
     env:
       BACKEND_IMAGE: 'adhamgamal22/add-user-backend:1.0'
     steps:
       - name: Step 1 - Checkout Code
         uses: actions/checkout@v4
-        
+
       - name: Step 2 - Install Dependencies & Build Backend
         run: |
           cd backend
@@ -35,13 +38,13 @@ jobs:
           echo "✅ Backend image pushed to Docker Hub."
 
   build_frontend:
-    runs-on: ubuntu-latest  # Use the latest Ubuntu runner
+    runs-on: ubuntu-latest
     env:
       FRONTEND_IMAGE: 'adhamgamal22/add-user-frontend:1.0'
     steps:
       - name: Step 1 - Checkout Code
         uses: actions/checkout@v4
-        
+
       - name: Step 2 - Install Dependencies & Build Frontend
         run: |
           cd frontend
@@ -64,7 +67,7 @@ jobs:
           echo "✅ Frontend image pushed to Docker Hub."
 
   setup_deploy:
-    runs-on: ubuntu-latest  # Use the latest Ubuntu runner
+    runs-on: ubuntu-latest
     steps:
       - name: Step 1 - Install Ansible
         run: |
@@ -74,23 +77,20 @@ jobs:
 
       - name: Step 2 - Set up SSH key
         env:
-          ANSIBLE_VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}  # ✅ Provide the vault password
+          ANSIBLE_VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan $DROPLET_IP >> ~/.ssh/known_hosts
-          echo "$ANSIBLE_VAULT_PASSWORD" > ~/.ansible_vault_password  # Save password to a file
+          ssh-keyscan $DROPLET_IP >> ~/.ssh/known_hosts  # ✅ Uses global env variable
+          echo "$ANSIBLE_VAULT_PASSWORD" > ~/.ansible_vault_password
           echo "✅ Setup SSH key."
 
   deploy:
-    needs: [build_backend, build_frontend, setup_deploy]  # Ensure this job runs after the others
-    runs-on: ubuntu-latest  # Use the latest Ubuntu runner
-    env:
-      DROPLET_IP: '207.154.204.90'
-
+    needs: [build_backend, build_frontend, setup_deploy]
+    runs-on: ubuntu-latest
     steps:
-      - name: Step 1 - Checkout Code  # ✅ Checkout the repo before running Ansible
+      - name: Step 1 - Checkout Code
         uses: actions/checkout@v4
 
       - name: Step 2 - Deploy to DigitalOcean with Ansible
