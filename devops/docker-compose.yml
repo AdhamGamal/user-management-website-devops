@@ -11,11 +11,6 @@ services:
       - mongo_data:/data/db
     networks:
       - appnet
-    healthcheck:
-      test: ["CMD", "nc", "-z", "localhost", "27017"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
     logging:
       driver: json-file
       options:
@@ -31,10 +26,11 @@ services:
     environment:
       - MONGO_URI=mongodb://mongo:27017/mydb
     depends_on:
-      mongo:
-        condition: service_healthy
+      - mongo
     networks:
       - appnet
+    command: ["sh", "-c", "until nc -z mongo 27017; do echo 'Waiting for MongoDB...'; sleep 2; done; npm start"]
+
 
   frontend:
     image: adhamgamal22/add-user-frontend:1.0
