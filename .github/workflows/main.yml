@@ -9,65 +9,65 @@ env:  # ✅ Global environment variables
   DROPLET_IP: '207.154.204.90'
 
 jobs:
-  # build_backend:
-  #   runs-on: ubuntu-latest
-  #   env:
-  #     BACKEND_IMAGE: 'adhamgamal22/add-user-backend:1.0'
-  #   steps:
-  #     - name: Step 1 - Checkout Code
-  #       uses: actions/checkout@v4
+  build_backend:
+    runs-on: ubuntu-latest
+    env:
+      BACKEND_IMAGE: 'adhamgamal22/add-user-backend:1.0'
+    steps:
+      - name: Step 1 - Checkout Code
+        uses: actions/checkout@v4
 
-  #     - name: Step 2 - Install Dependencies & Build Backend
-  #       run: |
-  #         cd backend
-  #         npm install
-  #         echo "✅ Backend setup completed."
+      - name: Step 2 - Install Dependencies & Build Backend
+        run: |
+          cd backend
+          npm install
+          echo "✅ Backend setup completed."
 
-  #     - name: Step 3 - Build Backend Docker Image
-  #       run: |
-  #         docker build -t $BACKEND_IMAGE -f devops/Dockerfile.backend .
-  #         echo "✅ Backend Docker image built."
+      - name: Step 3 - Build Backend Docker Image
+        run: |
+          docker build -t $BACKEND_IMAGE -f devops/Dockerfile.backend .
+          echo "✅ Backend Docker image built."
 
-  #     - name: Step 4 - Push Backend Image to Docker Hub
-  #       env:
-  #         DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-  #         DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-  #       run: |
-  #         echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
-  #         docker push $BACKEND_IMAGE
-  #         echo "✅ Backend image pushed to Docker Hub."
+      - name: Step 4 - Push Backend Image to Docker Hub
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        run: |
+          echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+          docker push $BACKEND_IMAGE
+          echo "✅ Backend image pushed to Docker Hub."
 
-  # build_frontend:
-  #   runs-on: ubuntu-latest
-  #   env:
-  #     FRONTEND_IMAGE: 'adhamgamal22/add-user-frontend:1.0'
-  #   steps:
-  #     - name: Step 1 - Checkout Code
-  #       uses: actions/checkout@v4
+  build_frontend:
+    runs-on: ubuntu-latest
+    env:
+      FRONTEND_IMAGE: 'adhamgamal22/add-user-frontend:1.0'
+    steps:
+      - name: Step 1 - Checkout Code
+        uses: actions/checkout@v4
 
-  #     - name: Step 2 - Install Dependencies & Build Frontend
-  #       run: |
-  #         cd frontend
-  #         npm install
-  #         npm run build
-  #         echo "✅ Frontend build completed."
+      - name: Step 2 - Install Dependencies & Build Frontend
+        run: |
+          cd frontend
+          npm install
+          npm run build
+          echo "✅ Frontend build completed."
 
-  #     - name: Step 3 - Build Frontend Docker Image
-  #       run: |
-  #         docker build -t $FRONTEND_IMAGE -f devops/Dockerfile.frontend .
-  #         echo "✅ Frontend Docker image built."
+      - name: Step 3 - Build Frontend Docker Image
+        run: |
+          docker build -t $FRONTEND_IMAGE -f devops/Dockerfile.frontend .
+          echo "✅ Frontend Docker image built."
 
-  #     - name: Step 4 - Push Frontend Image to Docker Hub
-  #       env:
-  #         DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-  #         DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-  #       run: |
-  #         echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
-  #         docker push $FRONTEND_IMAGE
-  #         echo "✅ Frontend image pushed to Docker Hub."
+      - name: Step 4 - Push Frontend Image to Docker Hub
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        run: |
+          echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+          docker push $FRONTEND_IMAGE
+          echo "✅ Frontend image pushed to Docker Hub."
         
   deploy:
-    # needs: [build_backend, build_frontend]
+    needs: [build_backend, build_frontend]
     runs-on: ubuntu-latest
     steps:
       - name: Step 1 - Checkout Code
@@ -78,6 +78,9 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa  # Ensure the private key has correct permissions
+          # Generate the public key from the private key
+          ssh-keygen -y -f ~/.ssh/id_rsa > ~/.ssh/id_rsa.pub
+          chmod 644 ~/.ssh/id_rsa.pub  # Set appropriate permissions for the public key
           eval $(ssh-agent -s)  # Start the SSH agent
           echo "${{ secrets.SSH_PRIVATE_KEY_PASS }}" | ssh-add ~/.ssh/id_rsa
           ssh-keyscan $DROPLET_IP >> ~/.ssh/known_hosts
