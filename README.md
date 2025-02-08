@@ -20,8 +20,8 @@ To manage multi-container orchestration, we used Docker Compose. This allowed us
 - Ensure proper dependency resolution (backend waits for MongoDB to be available before starting).
 - Simplify deployment by running a single command to bring up the entire stack.
 
-### CI/CD with Jenkins
-To automate the build, test, and deployment process, we set up a Jenkins pipeline. The pipeline ensures that every change to the application is automatically built, tested, pushed to Docker Hub, and deployed to a DigitalOcean droplet.
+### CI/CD with Jenkins and Ansible
+To automate the build, test, and deployment process, we set up a Jenkins pipeline integrated with Ansible. Jenkins ensures that every change to the application is automatically built, tested, pushed to Docker Hub, and deployed to a DigitalOcean droplet using Ansible.
 
 #### **Pipeline Steps**
 1. **Checkout Code from GitHub**
@@ -47,18 +47,22 @@ To automate the build, test, and deployment process, we set up a Jenkins pipelin
 7. **Push Frontend Image to Docker Hub**
    - Similarly, pushes the frontend image to Docker Hub for deployment.
 
-8. **Deploy Application on DigitalOcean**
-   - Uses SSH to copy the `docker-compose.yml` file to the DigitalOcean droplet.
-   - Ensures Docker and Docker-Compose are installed on the remote server.
-   - Stops any running containers and deploys the updated application using Docker Compose.
+8. **Deploy Application with Ansible**
+   - Uses Ansible to:
+     - Install Docker and Docker Compose on the remote server.
+     - Copy the `docker-compose.yml` file to the server.
+     - Pull the latest Docker images.
+     - Restart the application using Docker Compose.
 
 ## Justifications for the DevOps Choices
-- **Containerization (Docker)**: Allows for consistency between development and production environments.
+- **Containerization (Docker)**: Ensures consistency between development and production environments.
 - **Docker-Compose**: Simplifies multi-container application management.
 - **Jenkins CI/CD**: Automates the deployment process, reducing manual work and potential errors.
+- **Ansible**: Provides an easy way to configure and manage remote servers.
 
 ## Future Improvements
 - Implement Kubernetes for better container orchestration at scale.
 - Enhance monitoring and logging using Prometheus and Grafana.
 - Automate rollbacks in case of deployment failures.
 - Integrate automated tests into the CI/CD pipeline.
+
