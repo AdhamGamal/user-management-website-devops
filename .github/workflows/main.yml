@@ -77,10 +77,11 @@ jobs:
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
+          chmod 700 ~/.ssh/id_rsa
           eval $(ssh-agent -s)  # Start the SSH agent
           echo "${{ secrets.SSH_PRIVATE_KEY_PASS }}" | ssh-add ~/.ssh/id_rsa
           ssh-keyscan $DROPLET_IP >> ~/.ssh/known_hosts
+          ls -la ~/.ssh
           echo "✅ Setup SSH key."
 
       - name: Step 2 - Install Ansible
