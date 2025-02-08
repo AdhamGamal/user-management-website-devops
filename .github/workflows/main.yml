@@ -74,29 +74,28 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Step 2 - Set up SSH key
-      
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/key.pem  # Use key.pem instead of id_rsa
           chmod 600 ~/.ssh/key.pem  # Ensure the private key has correct permissions
           eval $(ssh-agent -s)  # Start the SSH agent
-  
+
           # Create a temporary askpass script
           echo '#!/bin/bash' > /tmp/askpass.sh
           echo 'echo "${{ secrets.SSH_PRIVATE_KEY_PASS }}"' >> /tmp/askpass.sh
           chmod +x /tmp/askpass.sh
-  
+
           # Use SSH_ASKPASS to provide the passphrase non-interactively
           export SSH_ASKPASS=/tmp/askpass.sh
           export DISPLAY=:0  # Required for SSH_ASKPASS to work
           echo "${{ secrets.SSH_PRIVATE_KEY_PASS }}" | ssh-add ~/.ssh/key.pem  # Use key.pem here
-  
+
           # Generate the public key (optional, if needed)
           ssh-keygen -y -f ~/.ssh/key.pem > ~/.ssh/key.pem.pub
           chmod 600 ~/.ssh/key.pem.pub  # Set appropriate permissions for the public key
           ssh-keyscan $DROPLET_IP >> ~/.ssh/known_hosts
           echo "✅ Setup SSH key."
-  
+
       - name: Step 3 - Install Ansible
         run: |
           sudo apt update
@@ -107,7 +106,5 @@ jobs:
         run: |
           echo "🚀 Running Ansible playbook..."
           # Use the SSH agent for non-interactive SSH connections in Ansible
-          cat ~/.ssh/known_hosts
           ansible-playbook -i devops/inventory.ini devops/deploy.yml
           echo "✅ Deployment completed."
-  
