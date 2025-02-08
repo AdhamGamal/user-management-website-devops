@@ -73,12 +73,6 @@ jobs:
       - name: Step 1 - Checkout Code
         uses: actions/checkout@v4
 
-      - name: Step 2 - Install Ansible
-        run: |
-          sudo apt update
-          sudo apt install -y ansible
-          echo "✅ Ansible installed."
-
       - name: Step 3 - Set up SSH key and Vault Password
         run: |
           mkdir -p ~/.ssh
@@ -88,6 +82,16 @@ jobs:
           echo ${{ secrets.ANSIBLE_VAULT_PASSWORD }} > ~/.ansible_vault_password
           chmod 600 ~/.ansible_vault_password
           echo "✅ Setup SSH key and vault password file."
+
+      - name: Debug SSH Connection
+        run: |
+          ssh -v -i ~/.ssh/id_rsa root@$DROPLET_IP "echo 'SSH connection successful'"
+  
+      - name: Step 2 - Install Ansible
+        run: |
+          sudo apt update
+          sudo apt install -y ansible
+          echo "✅ Ansible installed."
 
       - name: Step 4 - Deploy to DigitalOcean with Ansible
         run: |
