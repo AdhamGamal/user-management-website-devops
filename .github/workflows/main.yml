@@ -72,6 +72,14 @@ jobs:
           sudo apt install -y ansible
           echo "✅ Ansible installed."
 
+      - name: Step 2 - Set up SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H $DROPLET_IP >> ~/.ssh/known_hosts
+          echo "✅ Setup SSH key."
+
   deploy:
     needs: [build_backend, build_frontend, setup_deploy]  # Ensure this job runs after the others
     runs-on: ubuntu-latest  # Use the latest Ubuntu runner
@@ -79,13 +87,14 @@ jobs:
       DROPLET_IP: '207.154.204.90'
 
     steps:
-      - name: Deploy to DigitalOcean Droplet
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ env.DROPLET_IP }}
-          username: root
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            echo 'Running Ansible playbook...'
-            ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i devops/inventory.ini devops/deploy.yml
-  
+      - name: Step 1 - Checkout Code  # ✅ Checkout the repo before running Ansible
+        uses: actions/checkout@v4
+
+      - name: Step 2 - Deploy to DigitalOcean with Ansible
+        env:
+          ANSIBLE_VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}  # ✅ Provide the vault password
+        run: |
+          echo "🚀 Running Ansible playbook..."
+          echo "$ANSIBLE_VAULT_PASSWORD" > ~/.ansible_vault_password  # Save password to a file
+          ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i devops/inventory.ini devops/deploy.yml --private-key ~/.ssh/id_rsa --vault-password-file ~/.ansible_vault_password
+          echo "✅ Deployment completed."
