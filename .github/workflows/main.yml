@@ -65,24 +65,21 @@ jobs:
           echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
           docker push $FRONTEND_IMAGE
           echo "✅ Frontend image pushed to Docker Hub."
-
-  setup_deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Step 1 - Install Ansible
-        run: |
-          sudo apt update
-          sudo apt install -y ansible
-          echo "✅ Ansible installed."
         
   deploy:
-    needs: [build_backend, build_frontend, setup_deploy]
+    needs: [build_backend, build_frontend]
     runs-on: ubuntu-latest
     steps:
       - name: Step 1 - Checkout Code
         uses: actions/checkout@v4
 
-      - name: Step 2 - Set up SSH key and Vault Password
+      - name: Step 2 - Install Ansible
+        run: |
+          sudo apt update
+          sudo apt install -y ansible
+          echo "✅ Ansible installed."
+
+      - name: Step 3 - Set up SSH key and Vault Password
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
@@ -92,7 +89,7 @@ jobs:
           chmod 600 ~/.ansible_vault_password
           echo "✅ Setup SSH key and vault password file."
 
-      - name: Step 3 - Deploy to DigitalOcean with Ansible
+      - name: Step 4 - Deploy to DigitalOcean with Ansible
         run: |
           echo "🚀 Running Ansible playbook..."
           ansible-playbook -i devops/inventory.ini devops/deploy.yml --private-key ~/.ssh/id_rsa --vault-password-file ~/.ansible_vault_password
