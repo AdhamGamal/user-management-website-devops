@@ -79,7 +79,8 @@ jobs:
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa  # Ensure the private key has correct permissions
           eval $(ssh-agent -s)  # Start the SSH agent
-          echo "${{ secrets.SSH_PRIVATE_KEY_PASS }}" | ssh-add ~/.ssh/id_rsa
+          echo "Using passphrase: '${{ secrets.SSH_PRIVATE_KEY_PASS }}'"
+          echo "${{ secrets.SSH_PRIVATE_KEY_PASS }}" | ssh-add ~/.ssh/id_rsa -p
           ssh-keygen -y -f ~/.ssh/id_rsa > ~/.ssh/id_rsa.pub
           chmod 644 ~/.ssh/id_rsa.pub  # Set appropriate permissions for the public key
           ssh-keyscan $DROPLET_IP >> ~/.ssh/known_hosts
