@@ -106,7 +106,7 @@ jobs:
       - name: Step 4 - Debug SSH Connection
         run: |
           echo "Testing SSH connection..."
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no root@$DROPLET_IP echo "SSH connection successful!"
+          ssh -vvvv -i ~/.ssh/id_rsa root@$DROPLET_IP echo "SSH connection successful!"
         
       - name: Step 5 - Deploy to DigitalOcean with Ansible
         run: |
