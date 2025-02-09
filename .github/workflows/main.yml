@@ -87,4 +87,4 @@ jobs:
           eval "$(ssh-agent -s)"
           echo "${{ secrets.SSH_PRIVATE_KEY_PASS }}" | ssh-add ~/.ssh/id_rsa
           ssh-keyscan -H $DROPLET_IP >> ~/.ssh/known_hosts
-          echo "${{ secrets.SSH_PRIVATE_KEY_PASS }}" | ansible-playbook -i devops/inventory.ini devops/playbook.yml -vvvv
+          echo "${{ secrets.SSH_PRIVATE_KEY_PASS }}" | ansible-playbook -i devops/inventory.ini devops/deploy.yml -vvvv
