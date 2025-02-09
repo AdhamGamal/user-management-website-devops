@@ -14,99 +14,87 @@ pipeline {
     stages {
         stage('Step 1: Checkout Code from GitHub') { 
             steps {
-                echo 'Checking out code from GitHub...'
+                echo '🚀 Checking out code from GitHub...'
                 git branch: "${BRANCH}", url: "${GIT_REPO}"
+                echo '✅ Code checkout completed.'
             }
         }
 
-        stage('Step 2: Install Dependencies & Build Backend') { 
-            steps {
-                script {
-                    try {
-                        echo 'Installing dependencies & building backend...'
-                        dir('backend') {
-                            sh 'npm install'
-                            echo 'Backend setup completed. No build step required.'
+        stage('Step 2: Parallel Builds') {
+            parallel {
+                stage('Build Backend') {
+                    steps {
+                        script {
+                            try {
+                                echo '🚀 Setting up backend...'
+                                dir('backend') {
+                                    sh 'npm install'
+                                    echo '✅ Backend dependencies installed.'
+                                }
+                                echo '🐳 Building backend Docker image...'
+                                sh "docker build -t ${BACKEND_IMAGE} -f devops/Dockerfile.backend ."
+                                echo '✅ Backend Docker image built.'
+
+                                echo '🔐 Logging into Docker Hub...'
+                                withCredentials([usernamePassword(credentialsId: "${DOCKER_HUB_CREDENTIALS}", usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                                    sh """
+                                    echo ${DOCKER_PASSWORD} | docker login -u ${DOCKER_USERNAME} --password-stdin
+                                    echo '🚀 Pushing backend image to Docker Hub...'
+                                    docker push ${BACKEND_IMAGE}
+                                    """
+                                }
+                                echo '✅ Backend image pushed to Docker Hub.'
+                            } catch (Exception e) {
+                                error "❌ Backend build failed: ${e.message}"
+                            }
                         }
-                    } catch (Exception e) {
-                        error "Backend build failed: ${e.message}"
                     }
                 }
-            }
-        }
 
-        stage('Step 3: Install Dependencies & Build Frontend') { 
-            steps {
-                script {
-                    try {
-                        echo 'Installing dependencies & building frontend...'
-                        dir('frontend') {
-                            sh 'npm install'
-                            sh 'npm run build'
+                stage('Build Frontend') {
+                    steps {
+                        script {
+                            try {
+                                echo '🚀 Setting up frontend...'
+                                dir('frontend') {
+                                    sh 'npm install'
+                                    sh 'npm run build'
+                                    echo '✅ Frontend build completed.'
+                                }
+                                echo '🐳 Building frontend Docker image...'
+                                sh "docker build -t ${FRONTEND_IMAGE} -f devops/Dockerfile.frontend ."
+                                echo '✅ Frontend Docker image built.'
+
+                                echo '🔐 Logging into Docker Hub...'
+                                withCredentials([usernamePassword(credentialsId: "${DOCKER_HUB_CREDENTIALS}", usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                                    sh """
+                                    echo ${DOCKER_PASSWORD} | docker login -u ${DOCKER_USERNAME} --password-stdin
+                                    echo '🚀 Pushing frontend image to Docker Hub...'
+                                    docker push ${FRONTEND_IMAGE}
+                                    """
+                                }
+                                echo '✅ Frontend image pushed to Docker Hub.'
+                            } catch (Exception e) {
+                                error "❌ Frontend build failed: ${e.message}"
+                            }
                         }
-                    } catch (Exception e) {
-                        error "Frontend build failed: ${e.message}"
                     }
                 }
             }
         }
 
-        stage('Step 4: Build Backend Docker Image') { 
+        stage('Step 3: Deploy Application with Ansible') { 
             steps {
                 script {
-                    echo 'Building backend Docker image...'
-                    sh "docker build -t ${BACKEND_IMAGE} -f devops/Dockerfile.backend ."
-                }
-            }
-        }
-
-        stage('Step 5: Build Frontend Docker Image') { 
-            steps {
-                script {
-                    echo 'Building frontend Docker image...'
-                    sh "docker build -t ${FRONTEND_IMAGE} -f devops/Dockerfile.frontend ."
-                }
-            }
-        }
-
-        stage('Step 6: Push Backend Image to Docker Hub') { 
-            steps {
-                script {
-                    echo 'Pushing backend Docker image to Docker Hub...'
-                    withCredentials([usernamePassword(credentialsId: "${DOCKER_HUB_CREDENTIALS}", usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
-                        sh """
-                        echo ${DOCKER_PASSWORD} | docker login -u ${DOCKER_USERNAME} --password-stdin
-                        docker push ${BACKEND_IMAGE}
-                        """
-                    }
-                }
-            }
-        }
-
-        stage('Step 7: Push Frontend Image to Docker Hub') { 
-            steps {
-                script {
-                    echo 'Pushing frontend Docker image to Docker Hub...'
-                    withCredentials([usernamePassword(credentialsId: "${DOCKER_HUB_CREDENTIALS}", usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
-                        sh """
-                        echo ${DOCKER_PASSWORD} | docker login -u ${DOCKER_USERNAME} --password-stdin
-                        docker push ${FRONTEND_IMAGE}
-                        """
-                    }
-                }
-            }
-        }
-
-        stage('Step 8: Deploy Application with Ansible') { 
-            steps {
-                script {
+                    echo '🔑 Setting up SSH for deployment...'
                     sshagent(['ssh-credentials']) {
                         sh """
-                        echo 'Running Ansible playbook...'
+                        echo '🚀 Running Ansible playbook...'
                         ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i devops/inventory.ini devops/deploy.yml \
                         --private-key \$SSH_AUTH_SOCK
                         """
                     }
+                    echo '✅ Deployment completed!'
                 }
             }
         }
