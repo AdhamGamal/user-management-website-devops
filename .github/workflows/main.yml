@@ -92,4 +92,4 @@ jobs:
 
       - name: Run Ansible playbook
         run: |
-          echo "${{ secrets.SSH_PRIVATE_KEY_PASS }}" | ansible-playbook -i devops/inventory.ini devops/deploy.yml
+          echo "${{ secrets.SSH_PRIVATE_KEY_PASS }}" | ansible-playbook -i devops/inventory.ini devops/deploy.yml -vvvv
