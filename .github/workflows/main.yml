@@ -86,7 +86,7 @@ jobs:
 
       - name: Test SSH connection
         run: |
-          ssh -v -i ~/.ssh/id_rsa root@$DROPLET_IP echo "SSH connection successful"
+          echo "${{ secrets.SSH_PRIVATE_KEY_PASS }}" | ssh -v -i ~/.ssh/id_rsa root@$DROPLET_IP echo "SSH connection successful"
 
 
       - name: Install Ansible
