@@ -6,7 +6,7 @@ pipeline {
         BRANCH = 'main'
         DOCKER_HUB_CREDENTIALS = 'dockerhub-credentials'
         SSH_CREDENTIALS = 'ssh-credentials'
-        DROPLET_IP = '207.154.204.90'
+        DROPLET_IP = '104.248.40.160'
         BACKEND_IMAGE = 'adhamgamal22/add-user-backend:1.0'
         FRONTEND_IMAGE = 'adhamgamal22/add-user-frontend:1.0'
     }

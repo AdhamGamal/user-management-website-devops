@@ -6,7 +6,7 @@ on:
       - main  # Trigger on push to the main branch
 
 env:  # Global environment variables
-  DROPLET_IP: '207.154.204.90'
+  DROPLET_IP: '104.248.40.160'
 
 jobs:
   build_backend:
