@@ -5,86 +5,108 @@ on:
     branches:
       - main  # Trigger on push to the main branch
 
-env:  # ✅ Global environment variables
+env:  # Global environment variables
   DROPLET_IP: '207.154.204.90'
 
 jobs:
-#   build_backend:
-#     runs-on: ubuntu-latest
-#     env:
-#       BACKEND_IMAGE: 'adhamgamal22/add-user-backend:1.0'
-#     steps:
-#       - name: Step 1 - Checkout Code
-#         uses: actions/checkout@v4
-
-#       - name: Step 2 - Install Dependencies & Build Backend
-#         run: |
-#           cd backend
-#           npm install
-#           echo "✅ Backend setup completed."
-
-#       - name: Step 3 - Build Backend Docker Image
-#         run: |
-#           docker build -t $BACKEND_IMAGE -f devops/Dockerfile.backend .
-#           echo "✅ Backend Docker image built."
-
-#       - name: Step 4 - Push Backend Image to Docker Hub
-#         env:
-#           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-#           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-#         run: |
-#           echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
-#           docker push $BACKEND_IMAGE
-#           echo "✅ Backend image pushed to Docker Hub."
-
-#   build_frontend:
-#     runs-on: ubuntu-latest
-#     env:
-#       FRONTEND_IMAGE: 'adhamgamal22/add-user-frontend:1.0'
-#     steps:
-#       - name: Step 1 - Checkout Code
-#         uses: actions/checkout@v4
-
-#       - name: Step 2 - Install Dependencies & Build Frontend
-#         run: |
-#           cd frontend
-#           npm install
-#           npm run build
-#           echo "✅ Frontend build completed."
-
-#       - name: Step 3 - Build Frontend Docker Image
-#         run: |
-#           docker build -t $FRONTEND_IMAGE -f devops/Dockerfile.frontend .
-#           echo "✅ Frontend Docker image built."
-
-#       - name: Step 4 - Push Frontend Image to Docker Hub
-#         env:
-#           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-#           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-#         run: |
-#           echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
-#           docker push $FRONTEND_IMAGE
-#           echo "✅ Frontend image pushed to Docker Hub."
-        
-  deploy:
-    # needs: [build_backend, build_frontend]
+  build_backend:
     runs-on: ubuntu-latest
-  
+    env:
+      BACKEND_IMAGE: 'adhamgamal22/add-user-backend:1.0'
     steps:
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for Git
+
+      - name: Install Dependencies & Build Backend
+        run: |
+          echo "🚀 Setting up backend..."
+          cd backend
+          npm install
+          echo "✅ Backend dependencies installed."
+
+      - name: Build Backend Docker Image
+        run: |
+          echo "🐳 Building backend Docker image..."
+          docker build -t $BACKEND_IMAGE -f devops/Dockerfile.backend .
+          echo "✅ Backend Docker image built."
+
+      - name: Push Backend Image to Docker Hub
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        run: |
+          echo "🔐 Logging into Docker Hub..."
+          echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+          echo "🚀 Pushing backend image to Docker Hub..."
+          docker push $BACKEND_IMAGE
+          echo "✅ Backend image pushed to Docker Hub."
+
+  build_frontend:
+    runs-on: ubuntu-latest
+    env:
+      FRONTEND_IMAGE: 'adhamgamal22/add-user-frontend:1.0'
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for Git
+
+      - name: Install Dependencies & Build Frontend
+        run: |
+          echo "🚀 Setting up frontend..."
+          cd frontend
+          npm install
+          npm run build
+          echo "✅ Frontend build completed."
+
+      - name: Build Frontend Docker Image
+        run: |
+          echo "🐳 Building frontend Docker image..."
+          docker build -t $FRONTEND_IMAGE -f devops/Dockerfile.frontend .
+          echo "✅ Frontend Docker image built."
+
+      - name: Push Frontend Image to Docker Hub
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        run: |
+          echo "🔐 Logging into Docker Hub..."
+          echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+          echo "🚀 Pushing frontend image to Docker Hub..."
+          docker push $FRONTEND_IMAGE
+          echo "✅ Frontend image pushed to Docker Hub."
+
+  deploy:
+    needs: [build_backend, build_frontend]  # Wait for backend and frontend builds
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for Git
 
       - name: Install Ansible
         run: |
+          echo "📦 Installing Ansible..."
           sudo apt-get update
           sudo apt-get install -y ansible
+          echo "✅ Ansible installed."
 
-      - name: Run Ansible playbook
+      - name: Set Up SSH for Deployment
         run: |
+          echo "🔑 Setting up SSH for deployment..."
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           eval "$(ssh-agent -s)"
           echo "${{ secrets.SSH_PRIVATE_KEY_PASS }}" | ssh-add ~/.ssh/id_rsa
           ssh-keyscan -H $DROPLET_IP >> ~/.ssh/known_hosts
-          ansible-playbook -i devops/inventory.ini devops/deploy.yml -vvvv
+          echo "✅ SSH setup completed."
+
+      - name: Run Ansible Playbook
+        run: |
+          echo "🚀 Running Ansible playbook..."
+          ansible-playbook -i devops/inventory.ini devops/deploy.yml
+          echo "✅ Deployment completed!"
